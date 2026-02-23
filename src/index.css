@@ -1,0 +1,11 @@
+@import "tailwindcss";
+
+/* 숫자 input 스피너 숨기기 (깔끔한 UI) */
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+input[type="number"] {
+  -moz-appearance: textfield;
+}

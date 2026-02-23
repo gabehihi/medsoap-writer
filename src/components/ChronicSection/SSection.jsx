@@ -243,19 +243,44 @@ function DMSection({ data, set }) {
         {data.dm_insulin.ox === 'O' && (
           <SubInput>
             <div className="flex items-center gap-2 flex-wrap">
-              <span className="text-xs text-slate-500">기저</span>
+              <span className="text-xs text-slate-500">기저 인슐린</span>
               <NumInput
                 value={data.dm_insulin.basal}
                 onChange={v => set('dm_insulin', { basal: v })}
                 placeholder="10"
               />
               <span className="text-xs text-slate-400">U</span>
-              <span className="text-xs text-slate-400">/</span>
-              <span className="text-xs text-slate-500">식사</span>
-              <NumInput
-                value={data.dm_insulin.meal}
-                onChange={v => set('dm_insulin', { meal: v })}
-                placeholder="6"
+            </div>
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <span className="text-xs text-slate-500">식사 인슐린</span>
+              <input
+                type="number"
+                value={data.dm_insulin.mealAM}
+                onChange={e => set('dm_insulin', { mealAM: e.target.value })}
+                placeholder="아침"
+                aria-label="식사 인슐린 아침"
+                min="0"
+                className="w-14 px-2 py-1 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+              <span className="text-xs text-slate-400">-</span>
+              <input
+                type="number"
+                value={data.dm_insulin.mealMD}
+                onChange={e => set('dm_insulin', { mealMD: e.target.value })}
+                placeholder="점심"
+                aria-label="식사 인슐린 점심"
+                min="0"
+                className="w-14 px-2 py-1 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+              <span className="text-xs text-slate-400">-</span>
+              <input
+                type="number"
+                value={data.dm_insulin.mealPM}
+                onChange={e => set('dm_insulin', { mealPM: e.target.value })}
+                placeholder="저녁"
+                aria-label="식사 인슐린 저녁"
+                min="0"
+                className="w-14 px-2 py-1 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
               <span className="text-xs text-slate-400">U</span>
             </div>
@@ -350,9 +375,19 @@ function generateSText(data, selectedDiseases) {
       lines.push('저혈당 증상 없음.');
     }
     if (data.dm_insulin.ox === 'O') {
-      lines.push(
-        `인슐린 사용 중 (기저 ${data.dm_insulin.basal || '__'}U / 식사 ${data.dm_insulin.meal || '__'}U).`
-      );
+      const parts = [];
+      if (data.dm_insulin.basal) {
+        parts.push(`기저 ${data.dm_insulin.basal} U`);
+      }
+      const mealParts = [data.dm_insulin.mealAM, data.dm_insulin.mealMD, data.dm_insulin.mealPM];
+      const hasMeal = mealParts.some(v => v !== '');
+      if (hasMeal) {
+        const mealStr = mealParts.map(v => v || '').join(' - ');
+        parts.push(`식사 ${mealStr} U`);
+      }
+      if (parts.length > 0) {
+        lines.push(`인슐린 사용 중 (${parts.join(' / ')}).`);
+      }
     }
   }
 
@@ -379,7 +414,7 @@ const INITIAL_FORM = {
   htn_orthostatic:  { ox: 'X', text: '' },
   dm_homeGlucose:   { ox: 'X', fbs: '', ppg: '' },
   dm_hypoglycemia:  { ox: 'X', symptoms: [], time: '' },
-  dm_insulin:       { ox: 'X', basal: '', meal: '' },
+  dm_insulin:       { ox: 'X', basal: '', mealAM: '', mealMD: '', mealPM: '' },
 };
 
 // ── 메인 컴포넌트 ────────────────────────────────────────────

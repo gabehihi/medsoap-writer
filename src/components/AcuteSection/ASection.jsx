@@ -2,11 +2,14 @@ import { useState, useEffect } from 'react';
 
 const QUICK_DX = [
   'Acute pharyngotonsillitis',
+  'Acute nasopharyngitis',
   'Acute pharyngitis',
+  'Influenza',
   'Acute bronchitis',
-  'Acute gastroenteritis',
-  'URI (Upper Respiratory Infection)',
+  'Pneumonia',
   'Acute sinusitis',
+  'Acute gastroenteritis',
+  'Infectious enterocolitis',
 ];
 
 export default function AcuteASection({ onChange }) {

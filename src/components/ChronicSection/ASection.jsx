@@ -7,8 +7,13 @@ function sortDiseases(selected) {
   return DISEASE_ORDER.filter(d => selected.includes(d));
 }
 
-function generateAText(selectedDiseases, extraDx) {
-  const lines = sortDiseases(selectedDiseases).map(d => `# ${d}`);
+function generateAText(selectedDiseases, extraDx, ckdStageLabel) {
+  const lines = sortDiseases(selectedDiseases).map(d => {
+    if (d === 'CKD' && ckdStageLabel) {
+      return `# ${ckdStageLabel}`;
+    }
+    return `# ${d}`;
+  });
   if (extraDx.trim()) {
     extraDx.trim().split('\n').forEach(line => {
       if (line.trim()) lines.push(`# ${line.trim()}`);
@@ -17,12 +22,12 @@ function generateAText(selectedDiseases, extraDx) {
   return lines.join('\n');
 }
 
-export default function ASection({ selectedDiseases, onChange }) {
+export default function ASection({ selectedDiseases, ckdStageLabel = '', onChange }) {
   const [extraDx, setExtraDx] = useState('');
 
   useEffect(() => {
-    onChange?.(generateAText(selectedDiseases, extraDx));
-  }, [selectedDiseases, extraDx, onChange]);
+    onChange?.(generateAText(selectedDiseases, extraDx, ckdStageLabel));
+  }, [selectedDiseases, extraDx, ckdStageLabel, onChange]);
 
   const sorted = sortDiseases(selectedDiseases);
 
@@ -33,7 +38,7 @@ export default function ASection({ selectedDiseases, onChange }) {
         {sorted.map(d => (
           <div key={d} className="flex items-center gap-2 py-0.5 px-2 rounded bg-slate-50 text-sm text-slate-700">
             <span className="text-blue-500 font-bold">#</span>
-            <span>{d}</span>
+            <span>{d === 'CKD' && ckdStageLabel ? ckdStageLabel : d}</span>
           </div>
         ))}
       </div>

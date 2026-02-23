@@ -56,6 +56,7 @@ function App() {
   const [acuteAText, setAcuteAText] = useState('');
   const [acutePText, setAcutePText] = useState('');
   const [chronicVS, setChronicVS] = useState(null);
+  const [ckdStageLabel, setCkdStageLabel] = useState('');
   const [resetKey, setResetKey] = useState(0);
 
   // 모바일 미리보기 토글
@@ -64,9 +65,10 @@ function App() {
   const hasChronicDiseases = selectedDiseases.length > 0;
 
   const handleSChange = useCallback((text) => setChronicSText(text), []);
-  const handleOChange = useCallback((text, vs) => {
+  const handleOChange = useCallback((text, vs, extra) => {
     setChronicOText(text);
     if (vs) setChronicVS(vs);
+    if (extra?.ckdStageLabel !== undefined) setCkdStageLabel(extra.ckdStageLabel);
   }, []);
   const handleAChange = useCallback((text) => setChronicAText(text), []);
   const handlePChange = useCallback((text) => setChronicPText(text), []);
@@ -90,6 +92,7 @@ function App() {
       setAcuteAText('');
       setAcutePText('');
       setChronicVS(null);
+      setCkdStageLabel('');
       setResetKey(k => k + 1);
       setMobilePreviewOpen(false);
     }
@@ -125,7 +128,7 @@ function App() {
             </div>
           </div>
           <div className="flex items-center gap-3">
-            <span className="text-xs text-slate-400 hidden sm:inline">v2.0</span>
+            <span className="text-xs text-slate-400 hidden sm:inline">v3.0</span>
             <button
               onClick={handleReset}
               className="px-3 py-1.5 text-xs font-medium text-slate-500 bg-slate-100 hover:bg-red-50 hover:text-red-600 rounded-lg transition-colors border border-slate-200"
@@ -169,6 +172,7 @@ function App() {
                   <ASection
                     key={`a-${resetKey}`}
                     selectedDiseases={selectedDiseases}
+                    ckdStageLabel={ckdStageLabel}
                     onChange={handleAChange}
                   />
                 </CollapsibleCard>

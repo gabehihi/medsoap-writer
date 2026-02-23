@@ -3,6 +3,8 @@ import { calcBMI } from '../../utils/bmi';
 import { calcEGFR } from '../../utils/egfr';
 import { classifyASCVD, isAgeRisk } from '../../utils/ascvd';
 import { getKDIGOStatin } from '../../utils/kdigo_statin';
+import { getCKDStage } from '../../utils/ckd_stage';
+import { classifyHTNRisk } from '../../utils/htn_risk';
 
 // ── 공통 UI 컴포넌트 ────────────────────────────────────────
 
@@ -47,6 +49,13 @@ const RISK_BADGE_COLORS = {
   green:  'bg-green-100 text-green-700 border-green-200',
 };
 
+const HTN_RISK_BADGE_COLORS = {
+  '초고위험군': 'bg-red-100 text-red-800 border-red-200',
+  '고위험군':   'bg-orange-100 text-orange-800 border-orange-200',
+  '중등도위험군': 'bg-yellow-100 text-yellow-800 border-yellow-200',
+  '저위험군':   'bg-green-100 text-green-800 border-green-200',
+};
+
 const KDIGO_BADGE_COLORS = {
   strong:   'bg-purple-100 text-purple-700',
   moderate: 'bg-blue-100 text-blue-700',
@@ -75,6 +84,41 @@ function VSSection({ data, set }) {
         <NumInput value={data.vs_bt} onChange={v => set('vs_bt', v)} placeholder="36.5" step="0.1" />
         <span className="text-xs text-slate-400">{'\u2103'}</span>
       </div>
+    </div>
+  );
+}
+
+// ── HTN 위험군 서브패널 ─────────────────────────────────────
+
+function HTNRiskPanel({ data, set, htnRisk }) {
+  return (
+    <div className="mt-3 pt-3 border-t border-slate-100">
+      <label className="flex items-center gap-2 py-1 px-2 rounded text-sm text-slate-700 cursor-pointer hover:bg-slate-50">
+        <input
+          type="checkbox"
+          checked={data.htn_cardiovascular}
+          onChange={() => set('htn_cardiovascular', !data.htn_cardiovascular)}
+          className="accent-red-600"
+        />
+        <span className="font-medium">심혈관질환 기왕력</span>
+        <span className="text-xs text-slate-400">(관상동맥질환, 뇌졸중, 심부전 등)</span>
+      </label>
+
+      {htnRisk && (
+        <div className="mt-2 ml-1 space-y-1">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className={`inline-flex items-center px-2.5 py-1 rounded text-xs font-bold border ${HTN_RISK_BADGE_COLORS[htnRisk.riskGroup]}`}>
+              HTN 위험군: {htnRisk.riskGroup}
+            </span>
+            <span className="text-xs text-slate-600">
+              혈압 목표: {htnRisk.bpTarget}
+            </span>
+          </div>
+          <p className="text-xs text-slate-500 ml-1">
+            {htnRisk.description}
+          </p>
+        </div>
+      )}
     </div>
   );
 }
@@ -238,7 +282,7 @@ function OsteoporosisOSection({ data, set }) {
 
 // ── CKD O 섹션 + KDIGO ──────────────────────────────────────
 
-function CKDOSection({ data, set, egfr, kdigoResult }) {
+function CKDOSection({ data, set, egfr, ckdStage, kdigoResult }) {
   return (
     <div className="space-y-0.5">
       <SectionLabel label="CKD" />
@@ -254,6 +298,16 @@ function CKDOSection({ data, set, egfr, kdigoResult }) {
             <Badge>eGFR {egfr}</Badge>
           </span>
         )}
+        {ckdStage && (
+          <span className="ml-1 inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-indigo-100 text-indigo-800">
+            {ckdStage.label}
+          </span>
+        )}
+      </div>
+      <div className="flex items-center gap-2 flex-wrap py-1">
+        <span className="text-sm text-slate-600 shrink-0">ACR</span>
+        <NumInput value={data.ckd_acr} onChange={v => set('ckd_acr', v)} placeholder="mg/g (선택)" step="0.1" className="w-24" label="알부민-크레아티닌비" />
+        <span className="text-xs text-slate-400">mg/g</span>
       </div>
 
       {/* 투석 체크 */}
@@ -299,7 +353,7 @@ function ThyroidOSection({ data, set }) {
 
 // ── 텍스트 생성 ─────────────────────────────────────────────
 
-function generateOText(data, selectedDiseases, bmi, egfr, ascvdResult, activeFactorNames, kdigoResult) {
+function generateOText(data, selectedDiseases, bmi, egfr, ascvdResult, activeFactorNames, kdigoResult, htnRisk) {
   const lines = [];
 
   // V/S
@@ -318,6 +372,11 @@ function generateOText(data, selectedDiseases, bmi, egfr, ascvdResult, activeFac
     }
     if (hasBT) vs += `, ${data.vs_bt}\u2103`;
     lines.push(vs);
+  }
+
+  // HTN 위험군
+  if (selectedDiseases.includes('HTN') && htnRisk) {
+    lines.push(`HTN 위험군: ${htnRisk.riskGroup} (혈압 목표 ${htnRisk.bpTarget})`);
   }
 
   // 키/체중/BMI
@@ -367,6 +426,11 @@ function generateOText(data, selectedDiseases, bmi, egfr, ascvdResult, activeFac
     }
   }
 
+  // CKD ACR
+  if (selectedDiseases.includes('CKD') && data.ckd_acr) {
+    lines.push(`ACR ${data.ckd_acr} mg/g`);
+  }
+
   // KDIGO
   if (selectedDiseases.includes('CKD') && kdigoResult) {
     lines.push(`KDIGO: ${kdigoResult.recommendation}`);
@@ -399,6 +463,7 @@ const INITIAL_FORM = {
   osteo_tscore: '',
   // CKD
   ckd_bun: '', ckd_cr: '',
+  ckd_acr: '',
   ckd_dialysis: false,
   // Thyroid
   thyroid_tsh: '', thyroid_ft4: '',
@@ -406,6 +471,8 @@ const INITIAL_FORM = {
   ascvd_veryHighRisk: false,
   ascvd_familyHistory: false,
   ascvd_smoking: false,
+  // HTN 심뇌혈관위험군
+  htn_cardiovascular: false,
 };
 
 // ── ASCVD 위험인자 정의 ──────────────────────────────────────
@@ -450,6 +517,44 @@ export default function OSection({ selectedDiseases, patientInfo, onChange }) {
     [formData.ckd_cr, patientInfo.age, sexForCalc]
   );
 
+  // CKD stage
+  const ckdStage = useMemo(() => {
+    if (!selectedDiseases.includes('CKD')) return null;
+    if (egfr === null) return null;
+    return getCKDStage(Number(egfr));
+  }, [egfr, selectedDiseases]);
+
+  // HTN 위험인자 수 계산
+  const age = Number(patientInfo.age);
+  const sex = patientInfo.sex;
+  const htnRiskFactorCount = useMemo(() => {
+    let count = 0;
+    if (sex === '남' && age >= 55) count++;
+    if (sex === '여' && age >= 65) count++;
+    if (formData.ascvd_smoking) count++;
+    if (selectedDiseases.includes('Dyslipidemia')) count++;
+    if (formData.ascvd_familyHistory) count++;
+    return count;
+  }, [formData.ascvd_smoking, formData.ascvd_familyHistory, age, sex, selectedDiseases]);
+
+  // HTN 위험군 분류
+  const htnRisk = useMemo(() => {
+    if (!selectedDiseases.includes('HTN')) return null;
+    if (!formData.vs_sbp || !formData.vs_dbp) return null;
+    return classifyHTNRisk({
+      sbp: Number(formData.vs_sbp),
+      dbp: Number(formData.vs_dbp),
+      age,
+      sex,
+      hasDM: selectedDiseases.includes('DM'),
+      hasCKD: selectedDiseases.includes('CKD'),
+      hasCardiovascular: formData.htn_cardiovascular,
+      hasSmoking: formData.ascvd_smoking,
+      hasFamilyHistory: formData.ascvd_familyHistory,
+      riskFactorCount: htnRiskFactorCount,
+    });
+  }, [formData.vs_sbp, formData.vs_dbp, formData.htn_cardiovascular, formData.ascvd_smoking, formData.ascvd_familyHistory, selectedDiseases, age, sex, htnRiskFactorCount]);
+
   // ASCVD 위험인자 + 분류
   const riskFactors = useMemo(
     () => buildRiskFactors(formData, patientInfo, selectedDiseases),
@@ -483,17 +588,26 @@ export default function OSection({ selectedDiseases, patientInfo, onChange }) {
     });
   }, [patientInfo.age, egfr, selectedDiseases, formData.ascvd_veryHighRisk, formData.ckd_dialysis]);
 
+  // ckdStageLabel 생성
+  const ckdStageLabel = useMemo(() => {
+    if (!ckdStage || egfr === null) return '';
+    return `${ckdStage.label} (eGFR ${egfr} ml/min/1.73m\u00B2)`;
+  }, [ckdStage, egfr]);
+
   // 텍스트 생성 + V/S 데이터 전달
   useEffect(() => {
     const vs = { sbp: formData.vs_sbp, dbp: formData.vs_dbp, pr: formData.vs_pr, bt: formData.vs_bt };
-    onChange?.(generateOText(formData, selectedDiseases, bmi, egfr, ascvdResult, activeFactorNames, kdigoResult), vs);
-  }, [formData, selectedDiseases, bmi, egfr, ascvdResult, activeFactorNames, kdigoResult, onChange]);
+    onChange?.(generateOText(formData, selectedDiseases, bmi, egfr, ascvdResult, activeFactorNames, kdigoResult, htnRisk), vs, { ckdStageLabel });
+  }, [formData, selectedDiseases, bmi, egfr, ascvdResult, activeFactorNames, kdigoResult, htnRisk, ckdStageLabel, onChange]);
 
   const hasThyroid = selectedDiseases.includes('Hypothyroidism') || selectedDiseases.includes('Hyperthyroidism');
 
   return (
     <div className="space-y-4">
       <VSSection data={formData} set={set} />
+      {selectedDiseases.includes('HTN') && (
+        <HTNRiskPanel data={formData} set={set} htnRisk={htnRisk} />
+      )}
       <BodySection data={formData} set={set} bmi={bmi} />
 
       {selectedDiseases.includes('DM') && (
@@ -511,7 +625,7 @@ export default function OSection({ selectedDiseases, patientInfo, onChange }) {
         <OsteoporosisOSection data={formData} set={set} />
       )}
       {selectedDiseases.includes('CKD') && (
-        <CKDOSection data={formData} set={set} egfr={egfr} kdigoResult={kdigoResult} />
+        <CKDOSection data={formData} set={set} egfr={egfr} ckdStage={ckdStage} kdigoResult={kdigoResult} />
       )}
       {hasThyroid && (
         <ThyroidOSection data={formData} set={set} />

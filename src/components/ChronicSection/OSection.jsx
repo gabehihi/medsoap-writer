@@ -351,6 +351,66 @@ function ThyroidOSection({ data, set }) {
   );
 }
 
+// ── 기타 검사 수치 섹션 ──────────────────────────────────────
+
+function OtherLabsSection({ labs, onAdd, onUpdate, onRemove }) {
+  return (
+    <div className="space-y-1.5">
+      <SectionLabel label="기타 검사 수치" />
+      {labs.map((lab, idx) => (
+        <div key={idx} className="flex items-center gap-1.5">
+          <input
+            type="text"
+            value={lab.name}
+            onChange={e => onUpdate(idx, 'name', e.target.value)}
+            placeholder="검사명 (예: BUN, e', TnI)"
+            aria-label={`검사항목명 ${idx + 1}`}
+            className="flex-1 px-2 py-1 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          />
+          <input
+            type="text"
+            value={lab.value}
+            onChange={e => onUpdate(idx, 'value', e.target.value)}
+            placeholder="수치"
+            aria-label={`검사수치 ${idx + 1}`}
+            className="w-24 px-2 py-1 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          />
+          <input
+            type="text"
+            value={lab.unit}
+            onChange={e => onUpdate(idx, 'unit', e.target.value)}
+            placeholder="단위 (예: mg/dL)"
+            aria-label={`단위 ${idx + 1}`}
+            className="w-24 px-2 py-1 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          />
+          <button
+            type="button"
+            onClick={() => onRemove(idx)}
+            disabled={labs.length === 1}
+            aria-label="항목 삭제"
+            className={`shrink-0 w-7 h-7 flex items-center justify-center rounded-full transition-colors ${
+              labs.length === 1
+                ? 'text-slate-200 cursor-not-allowed'
+                : 'text-slate-400 hover:bg-red-50 hover:text-red-500'
+            }`}
+          >
+            ✕
+          </button>
+        </div>
+      ))}
+      {labs.length < 15 && (
+        <button
+          type="button"
+          onClick={onAdd}
+          className="text-xs text-blue-600 hover:text-blue-700 font-medium px-2 py-1 rounded hover:bg-blue-50 transition-colors"
+        >
+          + 검사 항목 추가
+        </button>
+      )}
+    </div>
+  );
+}
+
 // ── 텍스트 생성 ─────────────────────────────────────────────
 
 function generateOText(data, selectedDiseases, bmi, egfr, ascvdResult, activeFactorNames, kdigoResult, htnRisk) {
@@ -445,6 +505,16 @@ function generateOText(data, selectedDiseases, bmi, egfr, ascvdResult, activeFac
     lines.push(parts.join(' / '));
   }
 
+  // 기타 검사 수치
+  const validLabs = data.otherLabs.filter(lab => lab.name.trim() && lab.value.trim());
+  if (validLabs.length > 0) {
+    const labStr = validLabs.map(lab => {
+      const unit = lab.unit.trim() ? ` ${lab.unit.trim()}` : '';
+      return `${lab.name.trim()} ${lab.value.trim()}${unit}`;
+    }).join(', ');
+    lines.push(`기타: ${labStr}`);
+  }
+
   return lines.join('\n');
 }
 
@@ -473,6 +543,8 @@ const INITIAL_FORM = {
   ascvd_smoking: false,
   // HTN 심뇌혈관위험군
   htn_cardiovascular: false,
+  // 기타 검사 수치 (v3.1 추가)
+  otherLabs: [{ name: '', value: '', unit: '' }],
 };
 
 // ── ASCVD 위험인자 정의 ──────────────────────────────────────
@@ -602,6 +674,27 @@ export default function OSection({ selectedDiseases, patientInfo, onChange }) {
 
   const hasThyroid = selectedDiseases.includes('Hypothyroidism') || selectedDiseases.includes('Hyperthyroidism');
 
+  function addLab() {
+    setFormData(prev => ({
+      ...prev,
+      otherLabs: [...prev.otherLabs, { name: '', value: '', unit: '' }],
+    }));
+  }
+
+  function updateLab(idx, field, val) {
+    setFormData(prev => ({
+      ...prev,
+      otherLabs: prev.otherLabs.map((lab, i) => i === idx ? { ...lab, [field]: val } : lab),
+    }));
+  }
+
+  function removeLab(idx) {
+    setFormData(prev => ({
+      ...prev,
+      otherLabs: prev.otherLabs.filter((_, i) => i !== idx),
+    }));
+  }
+
   return (
     <div className="space-y-4">
       <VSSection data={formData} set={set} />
@@ -630,6 +723,12 @@ export default function OSection({ selectedDiseases, patientInfo, onChange }) {
       {hasThyroid && (
         <ThyroidOSection data={formData} set={set} />
       )}
+      <OtherLabsSection
+        labs={formData.otherLabs}
+        onAdd={addLab}
+        onUpdate={updateLab}
+        onRemove={removeLab}
+      />
     </div>
   );
 }

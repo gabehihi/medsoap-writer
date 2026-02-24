@@ -402,7 +402,11 @@ function generateSText(data, selectedDiseases) {
       : '약제 부작용 없음.'
   );
 
-  return lines.join('\n');
+  let text = lines.join('\n');
+  if (data.otherSymptoms.trim()) {
+    text += ` / 기타: ${data.otherSymptoms.trim()}`;
+  }
+  return text;
 }
 
 // ── 초기 상태 ────────────────────────────────────────────────
@@ -415,6 +419,7 @@ const INITIAL_FORM = {
   dm_homeGlucose:   { ox: 'X', fbs: '', ppg: '' },
   dm_hypoglycemia:  { ox: 'X', symptoms: [], time: '' },
   dm_insulin:       { ox: 'X', basal: '', mealAM: '', mealMD: '', mealPM: '' },
+  otherSymptoms:    '',
 };
 
 // ── 메인 컴포넌트 ────────────────────────────────────────────
@@ -439,6 +444,18 @@ export default function SSection({ selectedDiseases, onChange }) {
         <DMSection data={formData} set={set} />
       )}
       <CommonSection data={formData} set={set} />
+
+      {/* 기타 증상 */}
+      <div>
+        <label className="text-xs text-slate-500 block mb-1">기타 증상</label>
+        <textarea
+          rows={2}
+          value={formData.otherSymptoms}
+          onChange={e => setFormData(prev => ({ ...prev, otherSymptoms: e.target.value }))}
+          placeholder="주 질환 외 호소 증상 입력 (예: 두통, 부종, 수면장애, 피로감)"
+          className="w-full px-2 py-1.5 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+        />
+      </div>
     </div>
   );
 }
